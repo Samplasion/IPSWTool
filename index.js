@@ -57,7 +57,7 @@ const yargs = require("yargs")
         description: "Rebuild the cache"
     });
 const args = yargs.argv;
-console.dir(args)
+// console.dir(args)
 const JSDOM = require("jsdom").JSDOM;
 const fetch = require('node-fetch');
 const cliProgress = require('cli-progress');
@@ -265,16 +265,25 @@ async function info(device, firmware) {
 }
 
 async function list(type) {
+    const ELEMENTS_PER_PAGE = Math.max(process.stdout.rows-12, 10);
+
     if (type == "ipsw") {
-        const ELEMENTS_PER_PAGE = Math.max(process.stdout.rows-12, 10);
         var pages = Math.ceil(allIPSWs.length/ELEMENTS_PER_PAGE);
         var page = Math.max(Math.min(args.page || 1, pages), 0);
         var from = (page-1)*ELEMENTS_PER_PAGE;
 
         printIPSWs(args.signed ? allIPSWs.filter(f => f.signed) : allIPSWs.slice(from, from+ELEMENTS_PER_PAGE));
-        if (!args.signed) console.log("\nPage " + page.toString().yellow + " of " + pages.toString().yellow + " (" + ELEMENTS_PER_PAGE.toString().yellow + " elements per page)\n\nUse the --page=<page> flag to navigate the pages.")
+        if (!args.signed) console.log("\nPage " + page.toString().yellow + " of " + pages.toString().yellow + " (" + ELEMENTS_PER_PAGE.toString().yellow + " elements per page)\n\nUse the --page=<page> flag to navigate the pages.");
     } else {
-        return getDevices().then(printDevices);
+        return getDevices()
+            .then(devices => {
+                var pages = Math.ceil(devices.length/ELEMENTS_PER_PAGE);
+                var page = Math.max(Math.min(args.page || 1, pages), 0);
+                var from = (page-1)*ELEMENTS_PER_PAGE;
+
+                printDevices(devices.slice(from, from+ELEMENTS_PER_PAGE));
+                console.log("\nPage " + page.toString().yellow + " of " + pages.toString().yellow + " (" + ELEMENTS_PER_PAGE.toString().yellow + " elements per page)\n\nUse the --page=<page> flag to navigate the pages.")
+            });
     }
 }
 
