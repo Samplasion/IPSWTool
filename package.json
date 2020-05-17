@@ -1,13 +1,21 @@
 {
   "name": "ipswtool",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A tool for downloading IPSWs from ipsw.me",
   "main": "index.js",
   "scripts": {
     "test": "node index.js"
   },
   "keywords": [
-    "apple", "ios", "watchos", "ipados", "tvos", "ipsw", "download", "list", "info"
+    "apple",
+    "ios",
+    "watchos",
+    "ipados",
+    "tvos",
+    "ipsw",
+    "download",
+    "list",
+    "info"
   ],
   "author": "Francesco Arieti <dev@samplasion.js.org>",
   "license": "ISC",
@@ -16,9 +24,9 @@
     "cli-progress": "^3.8.2",
     "cli-table": "^0.3.1",
     "colors": "^1.4.0",
+    "cryptiles": "^4.1.3",
     "jsdom": "^16.2.2",
     "node-fetch": "^2.6.0",
-    "ora": "^4.0.4",
-    "request": "^2.81.0"
+    "ora": "^4.0.4"
   }
 }

@@ -1,9 +1,9 @@
 var ArgumentParser = require('argparse').ArgumentParser;
 var parser = new ArgumentParser({
-    version: '1.0.0',
+    version: '0.0.2',
     addHelp: true,
     description: 'IPSWTool – A tool for downloading IPSWs from ipsw.me'
-});
+})
 parser.addArgument(
     ["-i", '--identifier'],
     {
@@ -46,18 +46,18 @@ parser.addArgument(
         action: "storeTrue"
     }
 );
-var listSubparser = parser.addSubparsers({
-    title: 'List entries',
-    dest: "list"
-}).addParser("list");
-listSubparser.addArgument(
-    "type",
+
+// List
+parser.addArgument(
+    ["--list"],
     {
-        help: 'Type of list (one of ["ipsw", "device"])',
-        action: "store"
+        help: 'List something',
+        action: "store",
+        dest: "type",
+        choices: ["ipsw", "ipsws", "device", "devices"]
     }
 );
-listSubparser.addArgument(
+parser.addArgument(
     ["-p", "--page"],
     {
         help: 'Page for the "ipsw" type.',
@@ -65,17 +65,10 @@ listSubparser.addArgument(
         type: "int"
     }
 );
-listSubparser.addArgument(
+parser.addArgument(
     ["-s", "--signed"],
     {
         help: 'If the type is "ipsw", it only shows signed firmwares',
-        action: "storeTrue"
-    }
-);
-listSubparser.addArgument(
-    ["-r", '--rebuild'],
-    {
-        help: 'Rebuilds the IPSW cache.',
         action: "storeTrue"
     }
 );
@@ -83,7 +76,6 @@ const args = parser.parseArgs();
 
 const JSDOM = require("jsdom").JSDOM;
 const fetch = require('node-fetch');
-const request = require('request');
 const fs = require('fs');
 const cliProgress = require('cli-progress');
 const colors = require('colors');
@@ -104,60 +96,38 @@ function secondsToHms(s) {
     return `${hours}:${minutes}:${seconds}`
 }
 
-const download = (url, filename, callback, onFinish) => {
+async function download(url, filename, callback, onFinish) {
 
     const progressBar = new cliProgress.SingleBar({
-        format: '[' + '{bar}'.yellow + ']' + ' {percentage}% | ETA: {time} | {value}/{total} bytes | {speed}',
+        format: '[' + '{bar}'.yellow + ']' + ' {percentage}% | ETA: {eta}s | {value}/{total} bytes',
         fps: 2,
     }, cliProgress.Presets.shades_classic);
 
-    const file = fs.createWriteStream(filename);
-    let receivedBytes = 0;
+    var receivedBytes = 0;
 
-    var speedData = [];
-
-    var errored = false;
-
-    request.get(url)
-        .on('response', (response) => {
-            if (response.statusCode !== 200) {
-                return callback('Response status was ' + response.statusCode);
-            }
-
-            const totalBytes = response.headers['content-length'];
-            progressBar.start(totalBytes, 0, {
-                speed: "N/A",
-                time: "00:00"
-            });
-        })
-        .on('data', (chunk) => {
-            receivedBytes += chunk.length;
-            speedData.push(Math.abs(chunk.length - (speedData[speedData.length - 1] || 0)));
-            // console.log(speedData[speedData.length-1])
-            var currentSpeedData = speedData.splice(-10);
-            progressBar.update(receivedBytes, {
-                speed: (chunk.length / 1024).toFixed(2) + "KB/s",
-                time: secondsToHms(parseInt(progressBar.eta.eta))
-            });
-        })
-        .pipe(file)
-        .on('error', (err) => {
-            errored = true;
-            fs.unlink(filename);
+    const res = await fetch(url);
+    await new Promise((resolve, reject) => {
+        const fileStream = fs.createWriteStream(filename);
+        const totalBytes = parseInt(res.headers.raw()["content-length"][0]);
+        progressBar.start(totalBytes);
+        res.body.pipe(fileStream);
+        res.body.on("error", (err) => {
             progressBar.stop();
-            return callback(err.message);
+            console.error("There was an error!".red + "\n" + error.toString().yellow);
+            fileStream.close();
+            reject(err);
         });
+        res.body.on("data", (chunk) => {
+            receivedBytes += chunk.length;
 
-    file.on('finish', () => {
-        progressBar.stop();
-        file.close(callback);
-    });
-
-    file.on('error', (err) => {
-        errored = true;
-        fs.unlink(filename);
-        progressBar.stop();
-        return callback(err.message);
+            progressBar.update(receivedBytes);
+        })
+        fileStream.on("finish", function() {
+            progressBar.stop();
+            console.log("The file ".green + filename.yellow + " was successfully downloaded!".green);
+            fileStream.close();
+            resolve();
+        });
     });
 }
 
@@ -184,13 +154,13 @@ async function getIPSWs(device) {
  * @type {IPSW[]}
  */
 var allIPSWs = [];
-var throbber = ora({
+var spinner = ora({
     text: 'Initializing...'.cyan,
     spinner: cliSpinners.dots12,
     color: 'yellow'
 }).start();
 
-throbber.text = "Checking the cache...".cyan;
+spinner.text = "Checking the cache...".cyan;
 
 if (fs.existsSync("./ipsw.cache") && !args.rebuild) {
     try {
@@ -224,7 +194,7 @@ if (fs.existsSync("./ipsw.cache") && !args.rebuild) {
  */
 function entryPoint() {
     // Stop the loading icon.
-    throbber.succeed('Loaded all data!'.green);
+    spinner.succeed('Loaded all data!'.green);
 
     // Subcommands
     if (args.info) {
@@ -240,27 +210,27 @@ function entryPoint() {
  * Writes Device+IPSW data to cache and then calls `entryPoint()`
  */
 function getDevicesAndEntryPoint() {
-    throbber.text = "Generating new cache...";
+    spinner.text = "Generating new cache...";
     // Fetch the devices, then with the data...
     getDevices().then(async devices => {
         // ...loop over the devices, ...
         for (const device of devices) {
-            throbber.text = "(".cyan + (devices.indexOf(device)+1).toString().yellow + "/".cyan + devices.length.toString().yellow + ") Loading all data for device ".cyan + device.commercialName.yellow + "...".cyan;
+            spinner.text = "(".cyan + (devices.indexOf(device)+1).toString().yellow + "/".cyan + devices.length.toString().yellow + ") Loading all data for device ".cyan + device.commercialName.yellow + "...".cyan;
             // ...download all the firmwares of the device...
             var ipsws = await getIPSWs(device);
             // ...and append them to the other firmwares.
             allIPSWs = allIPSWs.concat(ipsws);
         }
     
-        throbber.text = "Saving cache to disk...".cyan;
+        spinner.text = "Saving cache to disk...".cyan;
         // Save the data to cache.
         fs.writeFileSync('./ipsw.cache', JSON.stringify({ipsws: allIPSWs, lastChecked: Date.now()}));
-        throbber.text = "Saved cache to disk.".cyan;
+        spinner.text = "Saved cache to disk.".cyan;
     }).then(() => {
         // Now that the cache is loaded, run the program.
         entryPoint();
     }).catch(e => {
-        throbber.fail("There was an error. Check your Internet connection and retry.".red + "\n" + e.toString().yellow);
+        spinner.fail("There was an error. Check your Internet connection and retry.".red + "\n" + e.toString().yellow);
     });
 }
 
@@ -291,15 +261,15 @@ async function main() {
         }
     }
 
-    console.log("Alright! " + `Now downloading ${`${ipsw.os} ${ipsw.version}`.yellow} ${"for".cyan} ${`${device.commercialName}`.green}.`.cyan);
+    console.log("Alright! " + `Now downloading ${`${ipsw.OS} ${ipsw.version}`.yellow} ${"for".cyan} ${`${device.commercialName}`.green}.`.cyan);
 
-    var filename = `${ipsw.replace(" ", "_")}_${ipsw.version}_${device.commercialName.split(" ").join("_")}.ipsw`;
+    var filename = `${ipsw.OS.replace(" ", "_")}_${ipsw.version}_${device.commercialName.split(" ").join("_")}.ipsw`;
 
     download(ipsw.url, filename, (err) => {
         if (err) {
             console.error("An error occurred: " + err.toString().red);
         } else {
-            console.error("The file ".green + filename.yellow + " was successfully downloaded!".green);
+            console.log("The file ".green + filename.yellow + " was successfully downloaded!".green);
         }
     });
 }
