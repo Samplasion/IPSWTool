@@ -1,82 +1,65 @@
-var ArgumentParser = require('argparse').ArgumentParser;
-var parser = new ArgumentParser({
-    version: '0.0.2',
-    addHelp: true,
-    description: 'IPSWTool – A tool for downloading IPSWs from ipsw.me'
-})
-parser.addArgument(
-    ["-i", '--identifier'],
-    {
-        help: 'The device you\'re downloading an IPSW for.',
-        metavar: "iDeviceX,X"
-    }
-);
-parser.addArgument(
-    ["-b", '--build'],
-    {
-        help: 'The build number of the IPSW you\'re downloading.',
-        metavar: "00A000"
-    }
-);
-parser.addArgument(
-    ["-l", '--latest'],
-    {
-        help: 'Use it in place of --build to get the latest IPSW for the device.',
-        action: "storeTrue"
-    }
-);
-parser.addArgument(
-    ["-f", '--info'],
-    {
-        help: 'Get details about a device.',
-        metavar: "iDeviceX,X"
-    }
-);
-parser.addArgument(
-    ["-f", '--ipsw'],
-    {
-        help: 'Either the major.minor.patch version or the build number of a firmware.',
-        metavar: "iDeviceX,X"
-    }
-);
-parser.addArgument(
-    ["-r", '--rebuild'],
-    {
-        help: 'Rebuilds the IPSW cache.',
-        action: "storeTrue"
-    }
-);
-
-// List
-parser.addArgument(
-    ["--list"],
-    {
-        help: 'List something',
-        action: "store",
-        dest: "type",
-        choices: ["ipsw", "ipsws", "device", "devices"]
-    }
-);
-parser.addArgument(
-    ["-p", "--page"],
-    {
-        help: 'Page for the "ipsw" type.',
-        action: "store",
-        type: "int"
-    }
-);
-parser.addArgument(
-    ["-s", "--signed"],
-    {
-        help: 'If the type is "ipsw", it only shows signed firmwares',
-        action: "storeTrue"
-    }
-);
-const args = parser.parseArgs();
-
+const fs = require('fs');
+const yargs = require("yargs")
+    .command("info [-d=device] [-f=firmware]", "Get details about a device, a firmware or both", yargs => {
+        yargs
+            .option("device", {
+                alias: "d",
+                type: "string",
+                description: "Get details about a device"
+            })
+            .option("ipsw", {
+                alias: "f",
+                type: "string",
+                description: "Get details about a firmware (specify it either with the Major.minor.patch format or the Build ID)"
+            })
+    })
+    .command("list <type> [-p=number] [-s]", "Lists everything in the database of the specified type", yargs => {
+        yargs
+            .positional("type", {
+                type: "string",
+                choices: ["ipsw", "ipsw", "device", "device"],
+                description: "The type of data you're trying to list"
+            })
+            .option("page", {
+                alias: "p",
+                type: "number",
+                description: "The page to view"
+            })
+    })
+    .option("help", {
+        alias: "h",
+        type: "boolean",
+        description: "Shows this help screen"
+    })
+    .option("version", {
+        alias: "v",
+        type: "boolean",
+        description: "Shows the version number and exits"
+    })
+    .option("identifier", {
+        alias: "i",
+        type: "string",
+        description: "The device you're downloading the IPSW for"
+    })
+    .option("build", {
+        alias: "b",
+        type: "string",
+        description: "The Build ID of the IPSW",
+    })
+    .option("latest", {
+        alias: "l",
+        type: "boolean",
+        description: "Use it in place of --build to get the latest IPSW for the device."
+    })
+    .option("rebuild", {
+        alias: "r",
+        type: "boolean",
+        description: "Rebuild the cache"
+    });
+const args = yargs.argv;
+console.dir(args)
 const JSDOM = require("jsdom").JSDOM;
 const fetch = require('node-fetch');
-const fs = require('fs');
 const cliProgress = require('cli-progress');
 const colors = require('colors');
 const Table = require('cli-table');
@@ -196,9 +179,9 @@ function entryPoint() {
     spinner.succeed('Loaded all data!'.green);
 
     // Subcommands
-    if (args.info) {
-        info(args.info);
-    } else if (args.list) {
+    if (args._.includes("info")) {
+        info(args.device, args.ipsw);
+    } else if (args._.includes("list")) { // args.typqe is the --list flag
         list(args.type.endsWith("s") ? args.type.substr(0, args.type.length-1) : args.type);
     } else {
         main();
@@ -275,28 +258,10 @@ async function main() {
  * Get information about a particular device.
  * 
  * @param {String} device 
+ * @param {String} firmware
  */
-async function info(device) {
-    var devices = await getDevices();
+async function info(device, firmware) {
     
-    if (!devices.map(d => d.internalName).includes(device)) {
-        return printDevices(devices)
-    }
-
-    var dev = devices.filter(d => d.internalName == device)[0];
-
-    var thisIPSWs = allIPSWs.filter(i => {return i.device.internalName == dev.internalName})
-
-    console.log(`
-Name: ${dev.commercialName.yellow}
-ID: ${dev.internalName.yellow}
-Board Config: ${(dev.boardConfig || "None known").yellow}
-Application Processor: ${(dev.platform || "None known").yellow}
-
-Latest Version: ${thisIPSWs[0].version.yellow}
-First Version: ${thisIPSWs[thisIPSWs.length-1].version.yellow}
-Versions Released: ${thisIPSWs.length.toString().yellow}
-`);
 }
 
 async function list(type) {
@@ -328,8 +293,6 @@ var printDevices = (devices) => {
     devices.forEach(device => {
         table.push([device.commercialName, device.internalName]);
     })
-
-    console.log(devices);
 
     return console.log(table.toString());
 }
@@ -369,10 +332,9 @@ async function getDevices() {
                 internalName: device.identifier,
                 platform: device.platform,
                 boardConfig: device.boardConfig,
+                ipsws: allIPSWs.length ? allIPSWs.filter(i => i.device.internalName == device.identifier) : null
             });
         });
 
     return devices;
 }
-
-

@@ -38,7 +38,7 @@ node ./index.js -i iPad7,5 -b 17E262
 IPSWTool also includes a `list` option and an `info` option. The `list` option works like so:
 
 ```
-node ./index.js --list <ipsw|device> [-s] [-p=number]
+node ./index.js list <ipsw|device> [-s] [-p=number]
 ```
 
 where `-s` is a flag for `ipsw` to only show signed firmwares and `-p` lets you select a page number.
@@ -46,7 +46,7 @@ where `-s` is a flag for `ipsw` to only show signed firmwares and `-p` lets you
 The info option, on the other hand, works this way:
 
 ```
-node ./index.js --info <ID of device>
+node ./index.js info [-d=<ID of device>] [-f=<build ID or version number of firmware>]
 ```
 
 and shows you a bunch of info regarding a device.
