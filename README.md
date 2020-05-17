@@ -49,4 +49,4 @@ The info option, on the other hand, works this way:
 node ./index.js info [-d=<ID of device>] [-f=<build ID or version number of firmware>]
 ```
 
-and shows you a bunch of info regarding a device.
+and shows you a bunch of info regarding a device or IPSW.
