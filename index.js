@@ -26,9 +26,9 @@ parser.addArgument(
     }
 );
 parser.addArgument(
-    ["-d", '--device'],
+    ["-f", '--info'],
     {
-        help: 'The internal name of a device.',
+        help: 'Get details about a device.',
         metavar: "iDeviceX,X"
     }
 );
