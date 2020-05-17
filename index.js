@@ -88,15 +88,14 @@ const IPSW = require("./ipsw");
 
 const chars = { 'top': '═', 'top-mid': '═', 'top-left': '╔', 'top-right': '╗', 'bottom': '═', 'bottom-mid': '═', 'bottom-left': '╚', 'bottom-right': '╝', 'left': '║', 'left-mid': '', 'mid': '', 'mid-mid': '', 'right': '║', 'right-mid': '', 'middle': ' ' }
 
-function secondsToHms(s) {
-    var hours = (((s - s % 3600) / 3600) % 60).toString().padStart(2, '0')
-    var minutes = (((s - s % 60) / 60) % 60).toString().padStart(2, '0')
-    var seconds = (s % 60).toString().padStart(2, '0')
-
-    return `${hours}:${minutes}:${seconds}`
-}
-
-async function download(url, filename, callback, onFinish) {
+/**
+ * Downloads a file in a specified location with a nice colored progress bar.
+ * 
+ * @param {String} url The URL from which to download the file
+ * @param {String} filename The path of the file to save
+ * @param {(error: String) => void} callback Deprecated
+ */
+async function download(url, filename, callback) {
 
     const progressBar = new cliProgress.SingleBar({
         format: '[' + '{bar}'.yellow + ']' + ' {percentage}% | ETA: {eta}s | {value}/{total} bytes',
