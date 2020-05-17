@@ -4,7 +4,7 @@ A small tool that interfaces with the ipsw.me API.
 
 ## How it works
 
-It works by "caching" the response of the calls to the ipsw.me API (specifically, the ones to `/devices` and `/device/buildid?type=ipsw`). I said "caching" but it really is saving it to a JSON file in the script's directory. Nevertheless, it's downloadde once every week, or if the user requests so using the `--rebuild` flag.
+It works by "caching" the response of the calls to the ipsw.me API (specifically, the ones to `/devices` and `/device/buildid?type=ipsw`). I said "caching" but it really is saving it to a JSON file in the script's directory. Nevertheless, it's downloaded once every week, or if the user requests so using the `--rebuild` flag.
 
 ## How to use
 
