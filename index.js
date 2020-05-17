@@ -244,10 +244,8 @@ async function main() {
     if (args.identifier && devices.map(d => d.internalName).includes(args.identifier)) {
         device = devices.filter(d => d.internalName == args.identifier)[0];
     } else {
-        printDevices(devices)
+        return printDevices(devices)
     }
-
-    
 
     if (args.build && /^\d{0,2}[a-zA-Z]\d{0,3}$/.test(args.build) && ipsws.map(f => f.build).includes(args.build) && !args.latest) {
         ipsw = allIPSWs.filter(fw => fw.build.toUpperCase() == args.build.toUpperCase())[0];
@@ -256,7 +254,7 @@ async function main() {
         if (args.latest) {
             ipsw = ipsws[0];
         } else {
-            printIPSWs(ipsws);
+            return printIPSWs(ipsws);
         }
     }
 
