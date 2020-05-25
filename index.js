@@ -292,7 +292,7 @@ async function list(type) {
  * 
  * @param {Device[]} devices An array of devices
  */
-var printDevices = (devices) => {
+function printDevices(devices) {
     var table = new Table({
         head: [ 'Device'.cyan, 'Identifier'.cyan],
         colWidths: [55, 20],
